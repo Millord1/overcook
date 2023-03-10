@@ -1,0 +1,3 @@
+/dbschema/migrations/
+/dbschema/test.esdl
+.env
