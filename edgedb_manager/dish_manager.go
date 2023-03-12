@@ -63,7 +63,7 @@ func PushDish(dishes *[]entities.Dish) entities.EdgeResponse {
 	return result
 }
 
-func updateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish *entities.Dish) entities.EdgeResponse {
+func UpdateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish *entities.Dish) entities.EdgeResponse {
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
 	if err != nil {
@@ -77,7 +77,7 @@ func updateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish
 			ing.Name, ing.Comment, ing.Quantity)
 	}
 	for _, step := range *steps {
-		query += fmt.Sprintf("steps += ()INSERT Step{content:='%s', comment:='%s'}unless conflict on .content else (select Step);",
+		query += fmt.Sprintf("steps += (INSERT Step{content:='%s', comment:='%s'}unless conflict on .content else (select Step));",
 			step.Content, step.Comment)
 	}
 	query += "};"
@@ -96,17 +96,7 @@ func updateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish
 	return result
 }
 
-func Delete(entity *entities.EdgeEntity) entities.EdgeResponse {
-	result, err := deleteEntity(entities.GetDbName(*entity), entities.GetProperty(*entity), entities.GetValue(*entity))
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	return result
-}
-
-func deleteEntity(entityName string, property string, propertyValue string) (entities.EdgeResponse, error) {
+func DeleteEntity(entity *entities.EdgeEntity) (entities.EdgeResponse, error) {
 
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
@@ -115,34 +105,12 @@ func deleteEntity(entityName string, property string, propertyValue string) (ent
 	}
 	defer client.Close()
 
-	query := fmt.Sprintf("delete %s filter .%s = '%s'", entityName, property, propertyValue)
+	query := fmt.Sprintf("delete %s filter .%s = '%s'", entities.GetDbName(*entity), entities.GetProperty(*entity), entities.GetValue(*entity))
 	var result entities.EdgeResponse
-
 	err = client.Query(ctx, query, &result)
 
 	return result, err
 }
-
-// func DeleteDish(dish *entities.Dish) entities.EdgeResponse {
-// 	ctx := context.Background()
-// 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer client.Close()
-
-// 	query := fmt.Sprintf("delete Dish filter .title = '%s'", dish.Title)
-// 	var result entities.EdgeResponse
-
-// 	err = client.Query(ctx, query, &result)
-
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 		fmt.Println(err)
-// 	}
-
-// 	return result
-// }
 
 func PushIngredient(ingredients *[]entities.Ingredient) entities.EdgeResponse {
 
