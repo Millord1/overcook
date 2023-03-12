@@ -11,3 +11,15 @@ type Dish struct {
 	Ingredients []Ingredient       `edgedb:"ingredients"`
 	Steps       []Step             `edgedb:"steps"`
 }
+
+func (dish Dish) GetEdgeName() string {
+	return "Dish"
+}
+
+func (dish Dish) GetDeletproperty() string {
+	return "title"
+}
+
+func (dish Dish) GetPropertyValue() string {
+	return dish.Title
+}

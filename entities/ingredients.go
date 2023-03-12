@@ -7,3 +7,15 @@ type Ingredient struct {
 	Comment  edgedb.OptionalStr   `edgedb:"comment" form:"comment"`
 	Quantity edgedb.OptionalInt64 `edgedb:"quantity" form:"quantity"`
 }
+
+func (ing Ingredient) GetEdgeName() string {
+	return "Ingredient"
+}
+
+func (ing Ingredient) GetDeleteproperty() string {
+	return "name"
+}
+
+func (ing Ingredient) GetPropertyValue() string {
+	return ing.Name
+}

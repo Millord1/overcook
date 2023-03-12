@@ -25,6 +25,11 @@ func AddDish(c *gin.Context) {
 		log.Println(dish.Title)
 		log.Println(dish.Duration)
 	}
+
+	var dishes []entities.Dish
+	dishes = append(dishes, dish)
+	edgedb_manager.PushDish(&dishes)
+
 	c.String(http.StatusOK, "Success")
 }
 
