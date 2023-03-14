@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"overcook/edgedb_manager"
@@ -28,7 +29,7 @@ func AddDish(c *gin.Context) {
 
 	var dishes []entities.Dish
 	dishes = append(dishes, dish)
-	edgedb_manager.PushDish(&dishes)
+	edgedb_manager.PushDishes(&dishes)
 
 	c.String(http.StatusOK, "Success")
 }
@@ -38,6 +39,13 @@ func AddIngredient(c *gin.Context) {
 	if c.ShouldBind(&ingredient) == nil {
 		log.Println(ingredient.Name)
 	}
+
+	var ings []entities.Ingredient
+	ings = append(ings, ingredient)
+	result := edgedb_manager.PushIngredients(&ings)
+
+	fmt.Println(result)
+
 	c.String(http.StatusOK, "Success")
 }
 

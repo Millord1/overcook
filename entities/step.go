@@ -18,3 +18,11 @@ func (step Step) GetDeleteproperty() string {
 func (step Step) GetPropertyValue() string {
 	return step.Content
 }
+
+func (step Step) FillDefault() Step {
+	_, exists := edgedb.OptionalStr.Get(step.Comment)
+	if !exists {
+		step.Comment = edgedb.NewOptionalStr("No comment")
+	}
+	return step
+}

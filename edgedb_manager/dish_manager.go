@@ -28,7 +28,7 @@ func GetAllDishes() []entities.Dish {
 	return dishes
 }
 
-func PushDish(dishes *[]entities.Dish) entities.EdgeResponse {
+func PushDishes(dishes *[]entities.Dish) []entities.Dish {
 
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
@@ -39,12 +39,14 @@ func PushDish(dishes *[]entities.Dish) entities.EdgeResponse {
 
 	var query string
 	for _, dish := range *dishes {
-		// TODO if not exists
-		query += fmt.Sprintf("INSERT Dish{title:='%s',duration:='%d',description:='%s',comment:='%s}unless conflict on .title;",
-			dish.Title, dish.Duration, dish.Description, dish.Comment)
+		dish := dish.FillDefault()
+		desc, _ := dish.Description.Get()
+		comment, _ := dish.Comment.Get()
+		query += fmt.Sprintf("INSERT Dish{title:='%s',duration:=%d,description:='%s',comment:='%s'}unless conflict;",
+			dish.Title, dish.Duration, desc, comment)
 	}
 
-	var result entities.EdgeResponse
+	var result []entities.Dish
 
 	if len(*dishes) > 1 {
 		err = client.Tx(ctx, func(ctx context.Context, tx *edgedb.Tx) error {
@@ -63,7 +65,7 @@ func PushDish(dishes *[]entities.Dish) entities.EdgeResponse {
 	return result
 }
 
-func UpdateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish *entities.Dish) entities.EdgeResponse {
+func UpdateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish *entities.Dish) []entities.Dish {
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
 	if err != nil {
@@ -71,32 +73,40 @@ func UpdateDish(ingredients *[]entities.Ingredient, steps *[]entities.Step, dish
 	}
 	defer client.Close()
 
-	query := "update Dish filter .title = '%s' set {" + fmt.Sprintf("duration:=%d; description:='%s';", dish.Duration, dish.Description)
+	filledDish := dish.FillDefault()
+	comment, _ := filledDish.Comment.Get()
+	desc, _ := filledDish.Description.Get()
+
+	query := "update Dish filter .title = '%s' set {" + fmt.Sprintf("duration:=%d, description:='%s', comment='%s'",
+		dish.Duration, desc, comment)
+
 	for _, ing := range *ingredients {
-		query += fmt.Sprintf("ingredients += (INSERT Ingredient{name:='%s', comment:='%s', @quantity:='%d'}unless conflict on .name else (select Ingredient));",
-			ing.Name, ing.Comment, ing.Quantity)
+		ing := ing.FillDefault()
+		qtty, _ := ing.Quantity.Get()
+		unity, _ := ing.Unity.Get()
+		query += fmt.Sprintf("ingredients += (INSERT Ingredient{name:='%s', @quantity:=%d, @unity:='%s'}unless conflict on .name else (select Ingredient));",
+			ing.Name, qtty, unity)
 	}
+
 	for _, step := range *steps {
+		step := step.FillDefault()
+		comment, _ := step.Comment.Get()
 		query += fmt.Sprintf("steps += (INSERT Step{content:='%s', comment:='%s'}unless conflict on .content else (select Step));",
-			step.Content, step.Comment)
+			step.Content, comment)
 	}
+
 	query += "};"
 
-	var result entities.EdgeResponse
-	err = client.Tx(ctx, func(ctx context.Context, tx *edgedb.Tx) error {
-		e := tx.Execute(ctx, query)
-		return e
-	})
-
+	var result []entities.Dish
+	err = client.Query(ctx, query, &result)
 	if err != nil {
 		log.Fatalln(err)
-		fmt.Println(err)
 	}
 
 	return result
 }
 
-func DeleteEntity(entity *entities.EdgeEntity) (entities.EdgeResponse, error) {
+func DeleteEntity(entity *entities.EdgeEntity) ([]entities.EdgeEntity, error) {
 
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
@@ -105,14 +115,16 @@ func DeleteEntity(entity *entities.EdgeEntity) (entities.EdgeResponse, error) {
 	}
 	defer client.Close()
 
-	query := fmt.Sprintf("delete %s filter .%s = '%s'", entities.GetDbName(*entity), entities.GetProperty(*entity), entities.GetValue(*entity))
-	var result entities.EdgeResponse
+	query := fmt.Sprintf("delete %s filter .%s = '%s'",
+		entities.GetDbName(*entity), entities.GetProperty(*entity), entities.GetValue(*entity))
+
+	var result []entities.EdgeEntity
 	err = client.Query(ctx, query, &result)
 
 	return result, err
 }
 
-func PushIngredient(ingredients *[]entities.Ingredient) entities.EdgeResponse {
+func PushIngredients(ingredients *[]entities.Ingredient) []entities.Ingredient {
 
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
@@ -123,11 +135,10 @@ func PushIngredient(ingredients *[]entities.Ingredient) entities.EdgeResponse {
 
 	var query string
 	for _, ing := range *ingredients {
-		query += fmt.Sprintf("INSERT Ingredient{name:='%s', comment:='%s'}unless conflict on .name;",
-			ing.Name, ing.Comment)
+		query += fmt.Sprintf("INSERT Ingredient{name:='%s'}unless conflict;", ing.Name)
 	}
 
-	var result entities.EdgeResponse
+	var result []entities.Ingredient
 
 	if len(*ingredients) > 1 {
 		err = client.Tx(ctx, func(ctx context.Context, tx *edgedb.Tx) error {
@@ -145,7 +156,7 @@ func PushIngredient(ingredients *[]entities.Ingredient) entities.EdgeResponse {
 	return result
 }
 
-func PushStep(steps *[]entities.Step) entities.EdgeResponse {
+func PushSteps(steps *[]entities.Step) []entities.Step {
 
 	ctx := context.Background()
 	client, err := edgedb.CreateClient(ctx, edgedb.Options{})
@@ -155,12 +166,14 @@ func PushStep(steps *[]entities.Step) entities.EdgeResponse {
 	defer client.Close()
 
 	var query string
-	for _, ing := range *steps {
+	for _, step := range *steps {
+		step := step.FillDefault()
+		comment, _ := step.Comment.Get()
 		query += fmt.Sprintf("INSERT Step{content:='%s', comment:='%s'}unless conflict on .content;",
-			ing.Content, ing.Comment)
+			step.Content, comment)
 	}
 
-	var result entities.EdgeResponse
+	var result []entities.Step
 
 	if len(*steps) > 1 {
 		err = client.Tx(ctx, func(ctx context.Context, tx *edgedb.Tx) error {

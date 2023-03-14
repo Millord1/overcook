@@ -1,12 +1,12 @@
 module default {
     type Dish {
         required property title -> str;
-        required property duration -> int64;
+        required property duration -> int16;
         property description -> str;
         property comment -> str;
         property image -> str;
-        required multi link ingredients -> Ingredient {
-            property quantity -> int64;
+        multi link ingredients -> Ingredient {
+            property quantity -> int32;
             property unity -> str;
         }
         multi link steps -> Step
